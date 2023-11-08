@@ -1,17 +1,18 @@
 syntax = "proto3";
 
-package ping;
+package RicartAgrawala;
 option go_package = "https://github.com/Casper2411/DISYS-HandIn4-Ben_Dover";
 
 
-service Ping {
-    rpc ping (Request) returns (Reply) {}
+service RicartAgrawalaService {
+    rpc RicartAgrawala (Request) returns (Reply) {}
 }
 
 message Request {
     int32 id = 1;
+    int32 lamportTimestamp = 2;
 }
 
 message Reply {
-    int32 amount = 1;
+    string message = 1;
 }

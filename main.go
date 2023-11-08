@@ -9,7 +9,7 @@ import (
 	"os"
 	"strconv"
 
-	ping "github.com/Casper2411/DISYS-HandIn4-Ben_Dover/grpc"
+	protocol "github.com/Casper2411/DISYS-HandIn4-Ben_Dover/grpc"
 	"google.golang.org/grpc"
 )
 
@@ -23,7 +23,7 @@ func main() {
 	p := &peer{
 		id:            ownPort,
 		amountOfPings: make(map[int32]int32),
-		clients:       make(map[int32]ping.PingClient),
+		clients:       make(map[int32]protocol.RicartAgrawalaServiceClient),
 		ctx:           ctx,
 	}
 
@@ -33,7 +33,7 @@ func main() {
 		log.Fatalf("Failed to listen on port: %v", err)
 	}
 	grpcServer := grpc.NewServer()
-	ping.RegisterPingServer(grpcServer, p)
+	protocol.RegisterRicartAgrawalaServiceServer(grpcServer, p)
 
 	go func() {
 		if err := grpcServer.Serve(list); err != nil {
@@ -55,39 +55,39 @@ func main() {
 			log.Fatalf("Could not connect: %s", err)
 		}
 		defer conn.Close()
-		c := ping.NewPingClient(conn)
+		c := protocol.NewRicartAgrawalaServiceClient(conn)
 		p.clients[port] = c
 	}
 
 	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {
-		p.sendPingToAll()
+		p.SendRequests()
 	}
 }
 
 type peer struct {
-	ping.UnimplementedPingServer
+	protocol.UnimplementedRicartAgrawalaServiceServer
 	id            int32
 	amountOfPings map[int32]int32
-	clients       map[int32]ping.PingClient
+	clients       map[int32]protocol.RicartAgrawalaServiceClient
 	ctx           context.Context
 }
 
-func (p *peer) Ping(ctx context.Context, req *ping.Request) (*ping.Reply, error) {
+func (p *peer) RicartAgrawala(ctx context.Context, req *protocol.Request) (*protocol.Reply, error) {
 	id := req.Id
 	p.amountOfPings[id] += 1
 
-	rep := &ping.Reply{Amount: p.amountOfPings[id]}
+	rep := &protocol.Reply{ Message: "OK"}
 	return rep, nil
 }
 
-func (p *peer) sendPingToAll() {
-	request := &ping.Request{Id: p.id}
+func (p *peer) SendRequests() {
+	request := &protocol.Request{Id: p.id}
 	for id, client := range p.clients {
-		reply, err := client.Ping(p.ctx, request)
+		reply, err := client.RicartAgrawala(p.ctx, request)
 		if err != nil {
 			fmt.Println("something went wrong")
 		}
-		fmt.Printf("Got reply from id %v: %v\n", id, reply.Amount)
+		fmt.Printf("Got reply from id %v: %v\n", id, reply.Message)
 	}
 }
