@@ -1,6 +1,6 @@
-module github.com/NaddiNadja/peer-to-peer
+module github.com/Casper2411/DISYS-HandIn4-Ben_Dover
 
-go 1.17
+go 1.21
 
 require (
 	google.golang.org/grpc v1.50.1
