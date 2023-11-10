@@ -4,24 +4,26 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math/rand"
 	"net"
 	"os"
 	"strconv"
-	"math/rand"
 	"time"
+
 	protocol "github.com/Casper2411/DISYS-HandIn4-Ben_Dover/grpc"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 type peer struct {
 	protocol.UnimplementedRicartAgrawalaServiceServer
-	id            int32
-	clients       map[int32]protocol.RicartAgrawalaServiceClient
-	ctx           context.Context
-	isRequesting  bool
-	ownRequest    *protocol.Request
+	id                  int32
+	clients             map[int32]protocol.RicartAgrawalaServiceClient
+	ctx                 context.Context
+	isRequesting        bool
+	ownRequest          *protocol.Request
 	isInCriticalSection bool
-	lamportTimestamp int32
+	lamportTimestamp    int32
 }
 
 func main() {
@@ -32,12 +34,12 @@ func main() {
 	defer cancel()
 
 	p := &peer{
-		id:            ownPort,
-		clients:       make(map[int32]protocol.RicartAgrawalaServiceClient),
-		ctx:           ctx,
-		isRequesting: false,
+		id:                  ownPort,
+		clients:             make(map[int32]protocol.RicartAgrawalaServiceClient),
+		ctx:                 ctx,
+		isRequesting:        false,
 		isInCriticalSection: false,
-		lamportTimestamp: 1,
+		lamportTimestamp:    1,
 	}
 
 	// Create listener tcp on port ownPort
@@ -63,7 +65,7 @@ func main() {
 
 		var conn *grpc.ClientConn
 		fmt.Printf("Trying to dial: %v\n", port)
-		conn, err := grpc.Dial(fmt.Sprintf(":%v", port), grpc.WithInsecure(), grpc.WithBlock())
+		conn, err := grpc.Dial(fmt.Sprintf(":%v", port), grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
 		if err != nil {
 			log.Fatalf("Could not connect: %s", err)
 		}
@@ -72,11 +74,11 @@ func main() {
 		p.clients[port] = c
 	}
 
-	for{
+	for {
 		rand.NewSource(time.Now().UnixNano())
 		randomInt := rand.Intn(10)
 		//fmt.Println(randomInt)
-		if(randomInt<2){
+		if randomInt < 2 {
 			//send request
 			p.SendRequests()
 			//enter critical section
@@ -90,18 +92,17 @@ func main() {
 			p.isRequesting = false
 		}
 	}
-	
-}
 
+}
 
 func (p *peer) RicartAgrawala(ctx context.Context, req *protocol.Request) (*protocol.Reply, error) {
 	p.lamportTimestamp += 1
 	fmt.Printf("Client %d received request: {Client %d, Lamport time %v}\n", p.id, req.Id, req.LamportTimestamp)
-	for !p.shouldIReply(req){
+	for !p.shouldIReply(req) {
 		//waiting until we can reply
 	}
 	fmt.Printf("Client %d replied to request: {Client %d, Lamport time %v}\n", p.id, req.Id, req.LamportTimestamp)
-	rep := &protocol.Reply{ Message: "OK"}
+	rep := &protocol.Reply{Message: "OK"}
 	return rep, nil
 }
 
@@ -117,21 +118,21 @@ func (p *peer) SendRequests() {
 		}
 		fmt.Printf("Got reply from id %v: %v to request: {Client %d, Lamport time %v}\n", id, reply.Message, p.ownRequest.Id, p.ownRequest.LamportTimestamp)
 	}
-	p.lamportTimestamp += 1	
+	p.lamportTimestamp += 1
 }
 
-func (p *peer) shouldIReply(req *protocol.Request) bool{
-	if(p.isInCriticalSection){
+func (p *peer) shouldIReply(req *protocol.Request) bool {
+	if p.isInCriticalSection {
 		return false
 	}
-	if(p.isRequesting){
-		if(p.ownRequest.LamportTimestamp<req.LamportTimestamp){
+	if p.isRequesting {
+		if p.ownRequest.LamportTimestamp < req.LamportTimestamp {
 			return false
-		}else if(p.ownRequest.LamportTimestamp==req.LamportTimestamp){
-			if(p.ownRequest.Id<req.Id){
+		} else if p.ownRequest.LamportTimestamp == req.LamportTimestamp {
+			if p.ownRequest.Id < req.Id {
 				return false
 			}
 		}
-	} 
+	}
 	return true
 }
