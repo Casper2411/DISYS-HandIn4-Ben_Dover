@@ -1,9 +1,7 @@
 package main
 
 import (
-	//"bufio"
 	"context"
-	//"crypto/rand"
 	"fmt"
 	"log"
 	"net"
@@ -18,11 +16,8 @@ import (
 type peer struct {
 	protocol.UnimplementedRicartAgrawalaServiceServer
 	id            int32
-	//amountOfPings map[int32]int32
 	clients       map[int32]protocol.RicartAgrawalaServiceClient
 	ctx           context.Context
-	//maintain a list of requests
-	//requests	  []*protocol.Request
 	isRequesting  bool
 	ownRequest    *protocol.Request
 	isInCriticalSection bool
@@ -36,15 +31,10 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	//make a slice of requests
-	//var requestSlice []*protocol.Request
-
 	p := &peer{
 		id:            ownPort,
-		//amountOfPings: make(map[int32]int32),
 		clients:       make(map[int32]protocol.RicartAgrawalaServiceClient),
 		ctx:           ctx,
-		//requests: 	   requestSlice,
 		isRequesting: false,
 		isInCriticalSection: false,
 		lamportTimestamp: 1,
@@ -82,11 +72,6 @@ func main() {
 		p.clients[port] = c
 	}
 
-	/*scanner := bufio.NewScanner(os.Stdin)
-	for scanner.Scan() {
-		p.SendRequests()
-	}*/
-
 	for{
 		rand.NewSource(time.Now().UnixNano())
 		randomInt := rand.Intn(10)
@@ -96,12 +81,13 @@ func main() {
 			p.SendRequests()
 			//enter critical section
 			p.isInCriticalSection = true
-			fmt.Printf("Client %d entering critical section. It's a critical hit! Lamport: %v\n", p.id, p.lamportTimestamp)
+			fmt.Printf("Client %d entering critical section. Lamport: %v\n", p.id, p.lamportTimestamp)
 			//wait
 			time.Sleep(3 * time.Second)
 			//exit critical section
 			fmt.Printf("Client %d exiting critical section.\n", p.id)
 			p.isInCriticalSection = false
+			p.isRequesting = false
 		}
 	}
 	
@@ -110,18 +96,18 @@ func main() {
 
 func (p *peer) RicartAgrawala(ctx context.Context, req *protocol.Request) (*protocol.Reply, error) {
 	p.lamportTimestamp += 1
-	fmt.Printf("Client %d received request from Client %d with Lamport time %v\n", p.id, req.Id, req.LamportTimestamp)
+	fmt.Printf("Client %d received request: {Client %d, Lamport time %v}\n", p.id, req.Id, req.LamportTimestamp)
 	for !p.shouldIReply(req){
-		//wait
+		//waiting until we can reply
 	}
-	fmt.Printf("Client %d replied to Client %d\n", p.id, req.Id)
+	fmt.Printf("Client %d replied to request: {Client %d, Lamport time %v}\n", p.id, req.Id, req.LamportTimestamp)
 	rep := &protocol.Reply{ Message: "OK"}
 	return rep, nil
 }
 
 func (p *peer) SendRequests() {
 	request := &protocol.Request{Id: p.id, LamportTimestamp: p.lamportTimestamp}
-	fmt.Printf("Client %v is sending requests at Lamport time %v\n", p.id, p.lamportTimestamp)
+	fmt.Printf("Client %v is sending requests: {Client %d, Lamport time %v} \n", p.id, p.id, p.lamportTimestamp)
 	p.isRequesting = true
 	p.ownRequest = request
 	for id, client := range p.clients {
@@ -129,11 +115,8 @@ func (p *peer) SendRequests() {
 		if err != nil {
 			fmt.Println("something went wrong")
 		}
-		fmt.Printf("Got reply from id %v: %v\n", id, reply.Message)
+		fmt.Printf("Got reply from id %v: %v to request: {Client %d, Lamport time %v}\n", id, reply.Message, p.ownRequest.Id, p.ownRequest.LamportTimestamp)
 	}
-	//check that all replies have been received
-	//p is no longer requesting after receiving all replies and entering critical section
-	p.isRequesting = false
 	p.lamportTimestamp += 1	
 }
 
@@ -150,6 +133,5 @@ func (p *peer) shouldIReply(req *protocol.Request) bool{
 			}
 		}
 	} 
-	
 	return true
 }
