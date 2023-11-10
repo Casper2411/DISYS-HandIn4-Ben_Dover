@@ -37,3 +37,5 @@ You will need a function for each rpc - such that the "server-side" of the node 
 You do not necessarily need a function for the "client-side" of the node, but there is some clean-code-good-practice in doing it as such. It is up to you though! In this example, we have a `sendPingToAll()` function, where the peer acts as a client, sends a ping to all the peers, it has connected to, and then prints the replies it gets.
 
 The main functionality is in lines 62-65. This is where we decide what the peer should do. In this example, the peer waits for a newline character to be entered and then calls the `sendPingToAll()` function. This can be changed, such that it calls it every 10 seconds, or such that it does something completely different. 
+
+Når den modtager en request, så skal den 
