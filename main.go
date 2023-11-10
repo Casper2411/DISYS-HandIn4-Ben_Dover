@@ -83,11 +83,11 @@ func main() {
 			p.SendRequests()
 			//enter critical section
 			p.isInCriticalSection = true
-			fmt.Printf("Client %d entering critical section. Lamport: %v\n", p.id, p.lamportTimestamp)
+			fmt.Printf("Peer %d entering critical section. Lamport: %v\n", p.id, p.lamportTimestamp)
 			//wait
 			time.Sleep(3 * time.Second)
 			//exit critical section
-			fmt.Printf("Client %d exiting critical section.\n", p.id)
+			fmt.Printf("Peer %d exiting critical section.\n", p.id)
 			p.isInCriticalSection = false
 			p.isRequesting = false
 		}
@@ -97,18 +97,18 @@ func main() {
 
 func (p *peer) RicartAgrawala(ctx context.Context, req *protocol.Request) (*protocol.Reply, error) {
 	p.lamportTimestamp += 1
-	fmt.Printf("Client %d received request: {Client %d, Lamport time %v}\n", p.id, req.Id, req.LamportTimestamp)
+	fmt.Printf("Peer %d received request: {Peer %d, Lamport time %v}\n", p.id, req.Id, req.LamportTimestamp)
 	for !p.shouldIReply(req) {
 		//waiting until we can reply
 	}
-	fmt.Printf("Client %d replied to request: {Client %d, Lamport time %v}\n", p.id, req.Id, req.LamportTimestamp)
+	fmt.Printf("Peer %d replied to request: {Peer %d, Lamport time %v}\n", p.id, req.Id, req.LamportTimestamp)
 	rep := &protocol.Reply{Message: "OK"}
 	return rep, nil
 }
 
 func (p *peer) SendRequests() {
 	request := &protocol.Request{Id: p.id, LamportTimestamp: p.lamportTimestamp}
-	fmt.Printf("Client %v is sending requests: {Client %d, Lamport time %v} \n", p.id, p.id, p.lamportTimestamp)
+	fmt.Printf("Peer %v is sending requests: {Peer %d, Lamport time %v} \n", p.id, p.id, p.lamportTimestamp)
 	p.isRequesting = true
 	p.ownRequest = request
 	for id, client := range p.clients {
@@ -116,7 +116,7 @@ func (p *peer) SendRequests() {
 		if err != nil {
 			fmt.Println("something went wrong")
 		}
-		fmt.Printf("Got reply from id %v: %v to request: {Client %d, Lamport time %v}\n", id, reply.Message, p.ownRequest.Id, p.ownRequest.LamportTimestamp)
+		fmt.Printf("Got reply from id %v: %v to request: {Peer %d, Lamport time %v}\n", id, reply.Message, p.ownRequest.Id, p.ownRequest.LamportTimestamp)
 	}
 	p.lamportTimestamp += 1
 }
