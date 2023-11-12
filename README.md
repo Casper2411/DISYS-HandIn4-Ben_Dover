@@ -15,11 +15,11 @@ To initate the nodes, you need to run three separate processes in different term
 
 The nodes ID will then be portnumber(5000) plus the command line number.
 
-##Log file
+## Log file
 In the log file it can be seen what the individual node receives and sends to the other notes, and when it is in critical section, noted by:
 `Client x entering critical section.`
 
-##Changing the amount of nodes
+## Changing the amount of nodes
 Line 44 starts a for loop which runs three times, since there are three nodes in the system. Increasing the number to e.g. 5 will enable you to have 5 nodes in the system, and you would simply need to start two more processes with:
 
 `go run . 3`
