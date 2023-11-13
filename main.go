@@ -49,7 +49,7 @@ func main() {
 	}
 
 	// Create listener tcp on port ownPort
-	list, err := net.Listen("tcp", fmt.Sprintf(":%v", ownPort))
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%v", ownPort))
 	if err != nil {
 		log.Fatalf("Failed to listen on port: %v", err)
 	}
@@ -57,7 +57,7 @@ func main() {
 	protocol.RegisterRicartAgrawalaServiceServer(grpcServer, p)
 
 	go func() {
-		if err := grpcServer.Serve(list); err != nil {
+		if err := grpcServer.Serve(listener); err != nil {
 			log.Fatalf("failed to server %v", err)
 		}
 	}()
