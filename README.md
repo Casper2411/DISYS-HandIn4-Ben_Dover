@@ -20,7 +20,7 @@ In the log file it can be seen what the individual node receives and sends to th
 `Client x entering critical section.`
 
 ## Changing the amount of nodes
-Line 44 starts a for loop which runs three times, since there are three nodes in the system. Increasing the number to e.g. 5 will enable you to have 5 nodes in the system, and you would simply need to start two more processes with:
+Line 64 starts a for loop which runs three times, since there are three nodes in the system. Increasing the number to e.g. 5 will enable you to have 5 nodes in the system, and you would simply need to start two more processes with:
 
 `go run . 3`
 
