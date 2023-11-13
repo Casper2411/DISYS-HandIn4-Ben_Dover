@@ -15,16 +15,18 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-//Peer struct used to represent a node in the system
+// Peer struct used to represent a node in the system
 type peer struct {
 	protocol.UnimplementedRicartAgrawalaServiceServer
-	id                  int32
-	//A map of all the other peers in the system	
-	clients             map[int32]protocol.RicartAgrawalaServiceClient
-	ctx                 context.Context
-	isRequesting        bool
-	ownRequest          *protocol.Request
-	isInCriticalSection bool
+	id int32
+	//A map of all the other peers in the system
+	clients      map[int32]protocol.RicartAgrawalaServiceClient
+	ctx          context.Context
+	isRequesting bool //False if not requesting, true if requesting
+	ownRequest   *protocol.Request
+
+	//Important that if isInCriticalSection is true, then no replies should be send.
+	isInCriticalSection bool //False if not in Critical Section, true if it is in Critical Section
 	lamportTimestamp    int32
 }
 
@@ -59,7 +61,7 @@ func main() {
 			log.Fatalf("failed to server %v", err)
 		}
 	}()
-	
+
 	//Look for the other peers/nodes in the system and connect to them
 	for i := 0; i < 3; i++ {
 		port := int32(5000) + int32(i)
@@ -79,22 +81,22 @@ func main() {
 		//Add the peer to the map of peers
 		p.clients[port] = c
 	}
-	
+
 	//Keep generating random numbers to decide if we should send a request to enter critical section
 	for {
 		rand.NewSource(time.Now().UnixNano())
 		randomInt := rand.Intn(10)
 		if randomInt < 2 {
-			//Send request to all other peers
+			//Send request to all other peers, and only continue when replies are received.
 			p.SendRequests()
 
 			//Enter critical section
 			p.isInCriticalSection = true
 			fmt.Printf("Peer %d entering critical section. Lamport: %v\n", p.id, p.lamportTimestamp)
-			
+
 			//Wait (simulates doing work in critical section)
 			time.Sleep(3 * time.Second)
-			
+
 			//Exit critical section
 			fmt.Printf("Peer %d exiting critical section.\n", p.id)
 			p.isInCriticalSection = false
@@ -107,7 +109,7 @@ func main() {
 func (p *peer) RicartAgrawala(ctx context.Context, req *protocol.Request) (*protocol.Reply, error) {
 	p.lamportTimestamp += 1
 	fmt.Printf("Peer %d received request: {Peer %d, Lamport time %v}\n", p.id, req.Id, req.LamportTimestamp)
-	
+
 	for !p.shouldIReply(req) {
 		//Waiting until we can reply (which is when shouldIReply() returns true)
 	}
@@ -121,11 +123,11 @@ func (p *peer) SendRequests() {
 	//Create a new request with own id and current lamport timestamp
 	request := &protocol.Request{Id: p.id, LamportTimestamp: p.lamportTimestamp}
 	fmt.Printf("Peer %v is sending requests: {Peer %d, Lamport time %v} \n", p.id, p.id, p.lamportTimestamp)
-	
+
 	//Set the peer to be requesting and set the "ownRequest" to the current request
 	p.isRequesting = true
 	p.ownRequest = request
-	
+
 	//Send the request to all other peers
 	for id, client := range p.clients {
 		//Wait for reply from peer
@@ -138,7 +140,7 @@ func (p *peer) SendRequests() {
 	p.lamportTimestamp += 1
 }
 
-//A helper function to decide if peer should reply to a request
+// A helper function to decide if peer should reply to a request
 func (p *peer) shouldIReply(req *protocol.Request) bool {
 	if p.isInCriticalSection {
 		return false
